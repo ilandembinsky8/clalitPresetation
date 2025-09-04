@@ -151,15 +151,17 @@ namespace PPTCreatorApp
             return yearImg;
         }
 
-        internal static BulletTextBoxData CreateBulletTextBox(string[] bulletPoints, int[] levels, float slideWidth, float slideHeight)
+        internal static BulletTextBoxData CreateBulletTextBox(string text, int[] levels, float slideWidth, float slideHeight, TextSegmentStyle[] segmentStyles = null)
         {
+            // Split the text into bullet points based on new lines
+            var bulletPoints = text.Split(new[] { "\r", "\n" }, StringSplitOptions.None);
             if (bulletPoints.Length != levels.Length)
             {
                 throw new ArgumentException("Bullet points and levels must have the same length.");
             }
             return new BulletTextBoxData
             {
-                Text = string.Join("\n", bulletPoints),
+                Text = text,
                 BulletPoints = bulletPoints,
                 Levels = levels,
                 X = 0,
@@ -172,7 +174,8 @@ namespace PPTCreatorApp
                 Italic = MsoTriState.msoFalse,
                 Underline = MsoTriState.msoFalse,
                 Alignment = Microsoft.Office.Interop.PowerPoint.PpParagraphAlignment.ppAlignRight,
-                TextColor = ClalitDarkBlue
+                TextColor = ClalitDarkBlue,
+                SegmentStyles = segmentStyles
             };
         }
     }

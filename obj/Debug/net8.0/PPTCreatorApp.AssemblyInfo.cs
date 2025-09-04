@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PPTCreatorApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c0b36751b4a9aa5279426135363757bc6a2baa25")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6d854618e5c8bb3ccebb6b070ab950dcd4ecdc53")]
 [assembly: System.Reflection.AssemblyProductAttribute("PPTCreatorApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PPTCreatorApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

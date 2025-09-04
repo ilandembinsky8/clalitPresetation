@@ -15,7 +15,7 @@ namespace PPTCreatorApp
         private string _filePath;
         private string _fileName;
 
-        private string _exeFolderPath 
+        private string _exeFolderPath
         {
             get
             {  // Get the full path of the executing assembly (the .exe file)
@@ -44,7 +44,7 @@ namespace PPTCreatorApp
             _fileDataHandler = fileHandler;
         }
 
-        private void FormatText(PowerPoint.TextFrame text, string fontName, float size, MsoTriState isBold, MsoTriState isItalic, MsoTriState isUnderlined, System.Drawing.Color textColor, PowerPoint.PpParagraphAlignment alignment)
+        private void FormatText(PowerPoint.TextFrame text, string fontName, float size, MsoTriState isBold, MsoTriState isItalic, MsoTriState isUnderlined, System.Drawing.Color textColor, PowerPoint.PpParagraphAlignment alignment, TextSegmentStyle[] styles = null)
         {
             text.TextRange.ParagraphFormat.TextDirection = PowerPoint.PpDirection.ppDirectionRightToLeft;
             PowerPoint.Font titleFont = text.TextRange.Font;
@@ -56,6 +56,33 @@ namespace PPTCreatorApp
             text.TextRange.ParagraphFormat.Alignment = alignment;
             text.VerticalAnchor = MsoVerticalAnchor.msoAnchorTop;
             titleFont.Color.RGB = System.Drawing.ColorTranslator.ToOle(textColor);
+            if (styles != null)
+            {
+                applySegmentStyles(text.TextRange, styles);
+            }
+        }
+
+        private void applySegmentStyles(TextRange textRange, TextSegmentStyle[] styles)
+        {
+            if (styles.Length == 0) return;
+            foreach (var style in styles)
+            {
+                if (style.Start < 0 || style.Start >= textRange.Length)
+                {
+                    Console.WriteLine($"Warning: Start index {style.Start} is out of bounds for text length {textRange.Length}. Skipping this style.");
+                    continue;
+                }
+                if (style.Start + style.Length > textRange.Length)
+                {
+                    Console.WriteLine($"Warning: Length {style.Length} is invalid for start index {style.Start} and text length {textRange.Length}. Skipping this style.");
+                    continue;
+                }
+                var segment = textRange.Characters(style.Start + 1, style.Length); // +1 because PowerPoint is 1-based
+                if (style.Bold) segment.Font.Bold = MsoTriState.msoTrue;
+                if (style.Italic) segment.Font.Italic = MsoTriState.msoTrue;
+                if (style.Underline) segment.Font.Underline = MsoTriState.msoTrue;
+                if (style.Color != System.Drawing.Color.Empty) segment.Font.Color.RGB = System.Drawing.ColorTranslator.ToOle(style.Color);
+            }
         }
 
         private PowerPoint.CustomLayout GetCustomLayout(string layoutName, string designName)
@@ -118,25 +145,54 @@ namespace PPTCreatorApp
         /// <returns>The newly created content slide.</returns>
         private PowerPoint.Slide AddNewContentSlide(string slideTitle, PowerPoint.CustomLayout layout = null)
         {
+            // Example bullet text will be replaced with real data from JSON later
+            string text = "נתח שוק ותנועת מבוטחים:\r" +
+                        "כל הקופות במאזן שלילי, למעט מכבי שבמאזן חיובי ועקבי לאורך שנים.\r" +
+                        "מכבי ומאוחדת מציגות צמיחה בנתחי השוק שלהן, כללית ולאומית במגמת ירידה.\r" +
+                        "פריסת שירותים:\r" +
+                        "רוב השירותים מרוכזים במרכז העיר, כשבשכונות מערב העיר, דרומה וצפונה כמעט ואין שירותים.\r" +
+                        "היצע שעות רפואה ראשונית:\r" +
+                        "מאוחדת ולאומית נהנות מיתרון הקוטן שלהן, ולפיכך מציגות היצע שעות גבוה ל-1,000 מבוטחים.\r" +
+                        "רפואה ראשונית: בין כללית למכבי – לכללית יתרון ברפואת ילדים, למכבי ברפואת משפחה. בשקלול 2 המקצועות – לכללית היצע שעות גבוה יותר ל-1,000 מבוטחים.";
+            // Example of segment styles to make "נתח שוק ותנועת מבוטחים" bold
+            TextSegmentStyle[] segmentStyles = new TextSegmentStyle[]
+            {
+                new TextSegmentStyle { Start = 0, Length = 22, Bold = true},
+                new TextSegmentStyle { Start = 39, Length = 5, Color = System.Drawing.Color.FromArgb(255, 0, 0) },
+                new TextSegmentStyle { Start = 63, Length = 5, Color = System.Drawing.Color.FromArgb(4, 156, 4), Bold = true },
+                new TextSegmentStyle { Start = 33, Length = 11, Bold = true},
+                new TextSegmentStyle { Start = 160, Length = 15, Bold = true},
+                new TextSegmentStyle { Start = 249, Length = 26, Bold = true},
+                new TextSegmentStyle { Start = 306, Length = 6, Color = System.Drawing.Color.FromArgb(4, 156, 4)},
+                new TextSegmentStyle { Start = 338, Length = 4, Color = System.Drawing.Color.FromArgb(4, 156, 4)},
+                new TextSegmentStyle { Start = 370, Length = 5, Color = System.Drawing.Color.FromArgb(4, 156, 4)},
+                new TextSegmentStyle { Start = 420, Length = 4, Color = System.Drawing.Color.FromArgb(4, 156, 4)}
+            };
             PowerPoint.Slide slide = AddNewSlide(layout);
             AddTextBox(slide, SlideContentDataFactory.CreateContentSlideTitle(slideTitle, _presentation.PageSetup.SlideWidth, _presentation.PageSetup.SlideHeight));
-            AddBulletTextBox(slide, SlideContentDataFactory.CreateBulletTextBox(new[] { "נקודה ראשונה", "נקודה ראשונה ראשונה", "נקודה ראשונה שנייה", "נקודה שנייה", "נקודה שלישית" }, new[] { 1, 2, 2, 1, 1 }, _presentation.PageSetup.SlideWidth, _presentation.PageSetup.SlideHeight));
+            AddBulletTextBox(slide, SlideContentDataFactory.CreateBulletTextBox(text, new[] { 1, 2, 2, 1, 2, 1, 2, 2 }, _presentation.PageSetup.SlideWidth, _presentation.PageSetup.SlideHeight, segmentStyles));
             return slide;
         }
 
         private void AddBulletTextBox(Slide slide, BulletTextBoxData bulletTextBoxData)
         {
             PowerPoint.Shape textBox = AddTextBox(slide, bulletTextBoxData);
-            PowerPoint.TextRange paragraphs = textBox.TextFrame.TextRange.Paragraphs();
+            PowerPoint.TextRange textRange = textBox.TextFrame.TextRange;
+            var paragraphs = textRange.Paragraphs();
             int index = 0;
             foreach (PowerPoint.TextRange paragraph in paragraphs)
             {
                 paragraph.ParagraphFormat.Bullet.Visible = MsoTriState.msoTrue;
                 paragraph.ParagraphFormat.Bullet.Character = 8226; // Bullet character
-                paragraph.IndentLevel = bulletTextBoxData.Levels[index];
+                int level = (index < bulletTextBoxData.Levels.Length) ? bulletTextBoxData.Levels[index] : 1;
+                if (level < 1) level = 1;
+                if (level > 5) level = 5;
+                paragraph.IndentLevel = level;
+                paragraph.ParagraphFormat.SpaceAfter = 3; // Space after each bullet point
                 index++;
             }
         }
+
 
         /// <summary>
         /// Adds a text box to the slide.
@@ -152,8 +208,10 @@ namespace PPTCreatorApp
                 textBoxData.Width,
                 textBoxData.Height
             );
-            textBox.TextFrame.TextRange.Text = textBoxData.Text;
-            FormatText(textBox.TextFrame, textBoxData.FontName, textBoxData.FontSize, textBoxData.Bold, textBoxData.Italic, textBoxData.Underline, textBoxData.TextColor, textBoxData.Alignment);
+            // needs to reapply the text to get the paragraphs cause when creating the text box the text is not split into paragraphs
+            var paragraphs = textBoxData.Text.Split(new[] { "\r", "\n" }, StringSplitOptions.None);
+            textBox.TextFrame.TextRange.Text = string.Join("\r", paragraphs);
+            FormatText(textBox.TextFrame, textBoxData.FontName, textBoxData.FontSize, textBoxData.Bold, textBoxData.Italic, textBoxData.Underline, textBoxData.TextColor, textBoxData.Alignment, textBoxData.SegmentStyles);
             return textBox;
         }
 
